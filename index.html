@@ -1,1 +1,521 @@
-<h1>Hi Guys</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Character Studio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Fix for scrollbar flashing in Tailwind's min-h-screen */
+        html {
+            overflow-y: auto; 
+        }
+        /* Custom spinner animation color override */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <!-- React and Babel CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel is used here to transpile JSX in the browser for static deployment -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons as a simple utility library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useCallback } = React;
+        const { createRoot } = ReactDOM;
+
+        // Custom Lucide Icon components (since they aren't auto-imported via CDN)
+        const Image = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
+        const Wand2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.5 10c.2-1-1.3-3.6-2-4-1.2-1-2.4-.6-4.4-.2-2.1.5-2.6.4-4.8.8-1.5.2-3.1.2-4.5.3M2 12h14c1.1 0 2 .9 2 2s-.9 2-2 2H2M2 18h14c1.1 0 2-.9 2-2s-.9-2-2-2H2"/></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>;
+        const Share2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>;
+        const CornerUpLeft = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="18 14 12 8 6 14"/><path d="M12 21V8"/></svg>;
+        const UploadCloud = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a5 5 0 0 1 0 10H4"/><path d="m9 16 3-3 3 3"/><path d="M12 13v7"/></svg>;
+        const ChevronRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"/></svg>;
+        const Loader = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2v4"/><path d="m16.2 7.8 2.5 2.5"/><path d="M22 12h-4"/><path d="m16.2 16.2 2.5-2.5"/><path d="M12 22v-4"/><path d="m7.8 16.2-2.5-2.5"/><path d="M2 12h4"/><path d="m7.8 7.8-2.5 2.5"/></svg>;
+        
+        // --- Configuration and API Setup ---
+        const API_KEY = "" // API Key is automatically provided by the Canvas environment.
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${API_KEY}`;
+        const MODEL_NAME = "gemini-2.5-flash-image-preview"; // The model for image-to-image generation
+
+        // --- Utility Functions ---
+
+        /**
+         * Converts a File object to a Base64 string for API payload.
+         */
+        const toBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]); // Only the Base64 part
+            reader.onerror = (error) => reject(error);
+        });
+
+        /**
+         * Robust fetch utility with exponential backoff for API calls.
+         */
+        const fetchWithRetry = async (url, options, retries = 3) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        console.error("API Error Response:", errorBody);
+                        throw new Error(`API returned status ${response.status}: ${errorBody.error.message || 'Unknown error'}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (i < retries - 1) {
+                        const delay = Math.pow(2, i) * 1000; // Exponential backoff (1s, 2s, 4s)
+                        console.warn(`Attempt ${i + 1} failed. Retrying in ${delay / 1000}s...`, error.message);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        console.error("Fetch failed after all retries.", error);
+                        throw new Error(`Failed to process request: ${error.message}`);
+                    }
+                }
+            }
+        };
+
+        /**
+         * Utility to copy text (Base64 URL) to the clipboard.
+         */
+        const copyToClipboard = (text) => {
+            try {
+                const textarea = document.createElement('textarea');
+                // Setting the value to the full data URL (e.g., data:image/png;base64,iVBORw0KGg...)
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return true;
+            } catch (err) {
+                console.error('Could not copy text: ', err);
+                return false;
+            }
+        };
+
+
+        // --- Component Helpers (Defined outside App to prevent focus loss) ---
+
+        // Custom Button component for reusability and theming
+        const StudioButton = ({ children, onClick, disabled, className = '', Icon, primary = true }) => {
+            const baseClasses = `
+                flex items-center justify-center space-x-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg
+                disabled:opacity-50 disabled:cursor-not-allowed
+            `;
+            const primaryClasses = primary
+                ? 'bg-white text-indigo-700 hover:bg-gray-100 ring-4 ring-white/30'
+                : 'bg-transparent text-white border border-white/50 hover:bg-white/10';
+
+            return (
+                <button
+                    onClick={onClick}
+                    disabled={disabled}
+                    className={`${baseClasses} ${primary ? primaryClasses : primaryClasses} ${className}`}
+                >
+                    {Icon && <Icon className="w-5 h-5" />}
+                    <span>{children}</span>
+                </button>
+            );
+        };
+
+        // Image Display component
+        const ImageDisplay = ({ imageSrc, isLoading, error, message, imageDescription }) => {
+            return (
+                <div className="relative w-full aspect-square bg-gray-100 rounded-2xl shadow-inner flex items-center justify-center p-4">
+                    {isLoading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-10 rounded-2xl text-white">
+                            <Loader className="w-8 h-8 animate-spin mb-3 text-white" />
+                            <p className="text-sm font-medium">{message}</p>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="text-center p-4 text-red-600 bg-red-100 rounded-lg">
+                            <p className="font-semibold mb-1">Error:</p>
+                            <p className="text-sm">{error}</p>
+                        </div>
+                    )}
+                    {imageSrc ? (
+                        <img
+                            src={imageSrc}
+                            alt={imageDescription}
+                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/FF5733/FFFFFF?text=Image+Load+Error"; }}
+                        />
+                    ) : (
+                        !isLoading && !error && (
+                            <div className="text-center text-gray-500">
+                                <Image className="w-12 h-12 mx-auto mb-2" />
+                                <p className="text-lg font-medium">Your Character Appears Here</p>
+                            </div>
+                        )
+                    )}
+                </div>
+            );
+        };
+
+        // Home View content component
+        const HomeView = ({ inputImageBase64, customPrompt, setCustomPrompt, handleFileUpload, handleGenerate, isLoading, outputImageBase64, handleTransitionToEdit }) => (
+            <>
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-white">1. Upload Your Photo</h2>
+                    <label className="block w-full cursor-pointer">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                        />
+                        <div className="flex items-center justify-center h-24 border-2 border-dashed border-indigo-400/50 bg-indigo-700/50 text-white rounded-xl transition-all hover:bg-indigo-600/70 p-4">
+                            <UploadCloud className="w-6 h-6 mr-3" />
+                            <span className="font-medium text-center">
+                                {inputImageBase64 ? 'Photo Selected' : 'Tap to upload a source image'}
+                            </span>
+                        </div>
+                    </label>
+                </div>
+
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-white">2. Style Prompt (Optional)</h2>
+                    <textarea
+                        rows="2"
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        placeholder="E.g., Give the character long wavy blonde hair, make them a knight..."
+                        className="w-full p-3 rounded-xl bg-indigo-700/50 border border-indigo-400/50 text-white placeholder-indigo-300 focus:ring-2 focus:ring-white focus:outline-none transition-shadow"
+                    />
+                </div>
+
+                <div className="flex justify-center pt-6">
+                    <StudioButton
+                        onClick={handleGenerate}
+                        disabled={isLoading || !inputImageBase64}
+                        Icon={Wand2}
+                        primary={true}
+                        className="w-full bg-white text-indigo-700 hover:bg-gray-100"
+                    >
+                        {isLoading ? 'Generating...' : 'Generate Character'}
+                    </StudioButton>
+                </div>
+
+                {outputImageBase64 && (
+                    <div className="pt-6">
+                        <h3 className="text-xl font-bold text-white mb-4 border-t pt-4 border-indigo-400/50">Character Generated!</h3>
+                        <StudioButton
+                            onClick={handleTransitionToEdit}
+                            Icon={ChevronRight}
+                            primary={false}
+                            className="w-full bg-indigo-500/30 border-indigo-400 text-white hover:bg-indigo-500/50"
+                        >
+                            Edit Character
+                        </StudioButton>
+                    </div>
+                )}
+            </>
+        );
+
+        // Edit View content component
+        const EditView = ({ editPrompt, setEditPrompt, handleBackToGenerator, handleApplyEdit, handleShare, isLoading, outputImageBase64 }) => (
+            <>
+                <div className="flex justify-start items-center space-x-4 mb-6 pt-2">
+                    <StudioButton
+                        onClick={handleBackToGenerator}
+                        Icon={CornerUpLeft}
+                        primary={false}
+                        className="text-white border-white/50 hover:bg-white/10"
+                    >
+                        Back
+                    </StudioButton>
+                </div>
+
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-white">Targeted Edit</h2>
+                    <textarea
+                        rows="2"
+                        value={editPrompt}
+                        onChange={(e) => setEditPrompt(e.target.value)}
+                        placeholder="E.g., Give the character a blue hat, Change their shirt color to green, Make them look surprised..."
+                        className="w-full p-3 rounded-xl bg-purple-700/50 border border-purple-400/50 text-white placeholder-purple-300 focus:ring-2 focus:ring-white focus:outline-none transition-shadow"
+                    />
+                </div>
+
+                <div className="flex space-x-3 pt-6">
+                    <StudioButton
+                        onClick={handleApplyEdit}
+                        disabled={isLoading || !editPrompt}
+                        Icon={RefreshCw}
+                        primary={true}
+                        className="flex-grow bg-white text-purple-700 hover:bg-gray-100"
+                    >
+                        {isLoading ? 'Applying...' : 'Apply Edit'}
+                    </StudioButton>
+                    <StudioButton
+                        onClick={handleShare}
+                        disabled={!outputImageBase64 || isLoading}
+                        Icon={Share2}
+                        primary={false}
+                        className="w-auto bg-purple-500/30 border-purple-400 text-white hover:bg-purple-500/50"
+                    >
+                        Share
+                    </StudioButton>
+                </div>
+            </>
+        );
+
+
+        // --- Main Application Component ---
+        function App() {
+            const [currentPage, setCurrentPage] = useState('home'); // 'home' or 'edit'
+            const [inputImageBase64, setInputImageBase64] = useState(null);
+            const [outputImageBase64, setOutputImageBase64] = useState(null);
+            const [customPrompt, setCustomPrompt] = useState('');
+            const [editPrompt, setEditPrompt] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [message, setMessage] = useState('');
+
+            // Utility function to handle image file upload and conversion
+            const handleFileUpload = useCallback(async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    try {
+                        const base64 = await toBase64(file);
+                        const mimeType = file.type;
+                        setInputImageBase64({ data: base64, mimeType });
+                        setOutputImageBase64(null);
+                        setCustomPrompt('');
+                        setError('');
+                        setMessage('Image uploaded successfully! Ready for generation.');
+                    } catch (err) {
+                        setError('Failed to process image file.');
+                    }
+                }
+            }, []);
+
+            // Core function to call the Gemini API for image generation/editing
+            const callGeminiImageAPI = useCallback(async (
+                imageData,
+                prompt,
+                isInitialGeneration
+            ) => {
+                setIsLoading(true);
+                setError('');
+                setMessage(isInitialGeneration ? 'Generating your Disney Character...' : 'Applying edit...');
+
+                // CRITICAL: Define the specific prompt mandates for style preservation and realism.
+                const baseSystemInstruction = isInitialGeneration
+                    ? `You are a Disney/Pixar character artist. Your task is to transform the provided photo into a high-quality, professional Disney/Pixar style portrait. The resulting image must maintain a strong, undeniable likeness to the original subject. The background must be a pure white (#FFFFFF). CRITICAL INSTRUCTION: The eyes and teeth of the character must be rendered with high realism, avoiding any typical cartoon distortion or large, exaggerated features. Preserve the subject's expression and distinct features. Additional context for the character style: `
+                    : `You are a master image editor for a Disney/Pixar studio. The current image is an existing character portrait. Your SOLE task is to modify the provided image based only on the latest user instruction, while STRICTLY preserving the established Disney/Pixar style, the strong likeness to the original subject, and the pure white background. MOST IMPORTANTLY, the highly realistic rendering of the eyes and teeth (no cartoon distortion) MUST be preserved in the edited output. User instruction: `;
+
+                const fullPrompt = baseSystemInstruction + prompt;
+
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { text: fullPrompt },
+                            {
+                                inlineData: {
+                                    mimeType: imageData.mimeType,
+                                    data: imageData.data
+                                }
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        responseModalities: ['TEXT', 'IMAGE']
+                    },
+                };
+
+                const options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                };
+
+                try {
+                    const result = await fetchWithRetry(API_URL, options);
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+
+                    if (base64Data) {
+                        setOutputImageBase64(`data:image/png;base64,${base64Data}`);
+                        setMessage(isInitialGeneration ? 'Character created successfully!' : 'Edit applied successfully!');
+                    } else {
+                        throw new Error("API response missing image data.");
+                    }
+                } catch (err) {
+                    setError(`Generation failed: ${err.message}`);
+                    setMessage('');
+                    setOutputImageBase64(null);
+                } finally {
+                    setIsLoading(false);
+                }
+            }, [API_URL]);
+
+            // Handler for initial generation in the Home View
+            const handleGenerate = useCallback(() => {
+                if (inputImageBase64) {
+                    callGeminiImageAPI(inputImageBase64, customPrompt, true);
+                } else {
+                    setError('Please upload an image first.');
+                }
+            }, [inputImageBase64, customPrompt, callGeminiImageAPI]);
+
+            // Handler for iterative editing in the Edit View
+            const handleApplyEdit = useCallback(() => {
+                if (outputImageBase64) {
+                    // Convert outputImageBase64 URL back into a structure suitable for the API input
+                    const mimeType = 'image/png'; // Assuming the output is always PNG
+                    const base64Data = outputImageBase64.split(',')[1];
+                    const editInput = { data: base64Data, mimeType };
+
+                    callGeminiImageAPI(editInput, editPrompt, false);
+                } else {
+                    setError('No character image available to edit.');
+                }
+            }, [outputImageBase64, editPrompt, callGeminiImageAPI]);
+
+            // Handler to transition to the Edit View
+            const handleTransitionToEdit = useCallback(() => {
+                if (outputImageBase64) {
+                    // Set the generated image's Base64 data and mimeType as the input source for the next edit
+                    const mimeType = 'image/png';
+                    const base64Data = outputImageBase64.split(',')[1];
+                    setInputImageBase64({ data: base64Data, mimeType });
+                    setEditPrompt('');
+                    setCurrentPage('edit');
+                    setError('');
+                    setMessage('Ready for iterative editing. Enter your modification prompt.');
+                }
+            }, [outputImageBase64]);
+
+            // Handler to transition back to the Home View
+            const handleBackToGenerator = useCallback(() => {
+                setCurrentPage('home');
+                setError('');
+                setMessage('Returning to the main generator. Upload a new photo or generate again.');
+            }, []);
+
+            // Handler for the Share action (copies Base64 URL to clipboard)
+            const handleShare = useCallback(() => {
+                if (outputImageBase64) {
+                    const success = copyToClipboard(outputImageBase64);
+                    if (success) {
+                        setMessage('Full image URL (Base64 data) copied to clipboard! Paste it into a browser tab to view or save.');
+                    } else {
+                        setError('Failed to copy to clipboard. Please take a screenshot instead.');
+                    }
+                }
+            }, [outputImageBase64]);
+
+            // --- Main Render ---
+
+            const themeColor = currentPage === 'home' ? 'bg-indigo-800' : 'bg-purple-800';
+            const accentColor = currentPage === 'home' ? 'text-indigo-400' : 'text-purple-400';
+
+            const headerText = currentPage === 'home'
+                ? 'Disney Character Generator'
+                : 'Iterative Character Studio';
+
+            const imageDescription = currentPage === 'home' ? "Generated Disney Character" : "Edited Disney Character";
+
+            return (
+                <div className={`min-h-screen ${themeColor} font-[Inter] text-white p-4 sm:p-8 flex flex-col items-center`}>
+                    <div className="w-full max-w-4xl">
+                        <header className="text-center mb-8">
+                            <h1 className="text-4xl sm:text-5xl font-extrabold mb-1">
+                                {headerText}
+                            </h1>
+                            <p className={`text-sm sm:text-base ${accentColor}`}>
+                                Model: {MODEL_NAME}
+                            </p>
+                        </header>
+
+                        <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Left Column: Image Display */}
+                            <div className="lg:order-1 order-2">
+                                <ImageDisplay
+                                    imageSrc={outputImageBase64}
+                                    isLoading={isLoading}
+                                    error={error}
+                                    message={message}
+                                    imageDescription={imageDescription}
+                                />
+                                {/* Status Message below the image on mobile/tablet */}
+                                {!isLoading && message && (
+                                    <p className={`text-sm mt-3 p-3 rounded-xl ${error ? 'bg-red-900 text-red-100' : 'bg-white/10 text-white'}`}>
+                                        {message}
+                                    </p>
+                                )}
+                                {/* Share Button on Home View after generation */}
+                                {currentPage === 'home' && outputImageBase64 && (
+                                    <div className="mt-4 flex justify-center">
+                                        <StudioButton
+                                            onClick={handleShare}
+                                            disabled={isLoading}
+                                            Icon={Share2}
+                                            primary={false}
+                                            className="w-full bg-indigo-500/30 border-indigo-400 text-white hover:bg-indigo-500/50"
+                                        >
+                                            Share Image
+                                        </StudioButton>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Column: Controls */}
+                            <div className="lg:order-2 order-1 bg-white/10 p-6 rounded-2xl shadow-xl space-y-6 flex flex-col justify-start h-full">
+                                {currentPage === 'home' ? (
+                                    <HomeView
+                                        inputImageBase64={inputImageBase64}
+                                        customPrompt={customPrompt}
+                                        setCustomPrompt={setCustomPrompt}
+                                        handleFileUpload={handleFileUpload}
+                                        handleGenerate={handleGenerate}
+                                        isLoading={isLoading}
+                                        outputImageBase64={outputImageBase64}
+                                        handleTransitionToEdit={handleTransitionToEdit}
+                                    />
+                                ) : (
+                                    <EditView
+                                        editPrompt={editPrompt}
+                                        setEditPrompt={setEditPrompt}
+                                        handleBackToGenerator={handleBackToGenerator}
+                                        handleApplyEdit={handleApplyEdit}
+                                        handleShare={handleShare}
+                                        isLoading={isLoading}
+                                        outputImageBase64={outputImageBase64}
+                                    />
+                                )}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Render the App component using React 18 createRoot
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat (Grounded)</title>
+    <title>AI Chat (Flash Model)</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -28,7 +28,7 @@
             width: 6px;
         }
         .chat-area::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* slate-300 */
+            background-color: #cbd5e1;
             border-radius: 3px;
         }
         .chat-area {
@@ -49,15 +49,14 @@
                 <circle cx="15" cy="9" r="1.5"/>
                 <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
             </svg>
-            <h1 class="text-xl font-bold">AI Chat (Flash Model, Grounded)</h1>
+            <h1 class="text-xl font-bold">AI Chat (Flash Model)</h1>
         </header>
 
         <!-- Message Area -->
         <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4">
-            <!-- Initial welcome message -->
             <div class="flex justify-start">
                 <div class="bg-gemini-blue/10 text-gemini-dark p-3 rounded-lg max-w-xs shadow-sm">
-                    Hello! Ask me anything. I can use Google Search to provide up-to-date and grounded answers.
+                    Hello! Ask me anything. I can provide answers using the Flash model.
                 </div>
             </div>
         </div>
@@ -68,8 +67,7 @@
                    class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gemini-blue focus:border-gemini-blue transition duration-150 shadow-inner"
                    autocomplete="off" required>
             <button type="submit" id="send-button"
-                    class="bg-gemini-blue hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-r-lg transition duration-150 flex items-center justify-center disabled:opacity-50"
-                    >
+                    class="bg-gemini-blue hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-r-lg transition duration-150 flex items-center justify-center disabled:opacity-50">
                 <span id="button-text">Send</span>
                 <div id="loader" class="hidden w-5 h-5 border-2 border-white border-t-2 border-t-gemini-blue rounded-full animate-spin ml-2"></div>
             </button>
@@ -78,10 +76,7 @@
     </div>
 
     <script>
-        // --- Gemini API Configuration ---
-        // API Key inserted below
         const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk";
-        // Using the recommended fast and grounded model: gemini-2.5-flash-preview-09-2025.
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         const chatForm = document.getElementById('chat-form');
         const userInput = document.getElementById('user-input');
@@ -91,103 +86,59 @@
         
         let chatHistory = [];
 
-        // Utility to handle fetch with exponential backoff
         async function handleFetchWithRetry(url, options, maxRetries = 5) {
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
                     if (response.status === 429 && i < maxRetries - 1) {
-                        // Implement exponential backoff
                         const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
-                        continue; // Retry the loop
+                        continue;
                     }
-                    if (!response.ok) {
-                        throw new Error(`API returned status ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`API returned status ${response.status}`);
                     return response;
                 } catch (error) {
                     if (i === maxRetries - 1) {
-                        console.error("Fetch failed after multiple retries:", error);
+                        console.error("Fetch failed:", error);
                         throw new Error("Could not connect to the API. Please try again later.");
                     }
                 }
             }
         }
 
-        // Function to safely append a new message bubble to the chat area
-        function appendMessage(text, sender, sources = []) {
+        function appendMessage(text, sender) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
 
             const contentEl = document.createElement('div');
-            
-            // Combining all classes into a single string and assigning it to className
-            let classString = 'p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words';
-            
-            if (sender === 'user') {
-                classString += ' bg-gemini-blue text-white rounded-br-none';
-            } else {
-                classString += ' bg-gray-100 text-gemini-dark rounded-tl-none';
-            }
-            
-            contentEl.className = classString; // Correctly sets all classes
+            contentEl.className = `p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words ${
+                sender === 'user' ? 'bg-gemini-blue text-white rounded-br-none' : 'bg-gray-100 text-gemini-dark rounded-tl-none'
+            }`;
 
-            // Replace markdown links with clickable HTML links for better rendering
-            let processedText = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
-                return `<a href="${url}" target="_blank" class="text-gemini-blue hover:underline">${text}</a>`;
-            });
-
-            contentEl.innerHTML = processedText;
-
-            // Add citations if present
-            if (sources.length > 0) {
-                const citationEl = document.createElement('div');
-                citationEl.classList.add('mt-2', 'pt-2', 'border-t', 'border-gray-300', 'text-xs', 'text-gray-500');
-                
-                const uniqueSources = Array.from(new Map(sources.map(item => [item.uri, item])).values());
-                
-                citationEl.innerHTML = 'Sources: ' + uniqueSources.map(source =>
-                    `<a href="${source.uri}" target="_blank" class="hover:text-gemini-blue underline" title="${source.title || source.uri}">[Source]</a>`
-                ).join(' ');
-
-                contentEl.appendChild(citationEl);
-            }
-
+            contentEl.innerHTML = text;
             messageEl.appendChild(contentEl);
             messagesContainer.appendChild(messageEl);
-            // Scroll to the latest message
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Main function to handle sending a message
         async function sendMessage(e) {
             e.preventDefault();
             const prompt = userInput.value.trim();
             if (!prompt) return;
 
-            // 1. Display user message and clear input
             appendMessage(prompt, 'user');
             userInput.value = '';
-
-            // 2. Update UI state (loading)
             sendButton.disabled = true;
             loader.classList.remove('hidden');
             document.getElementById('button-text').textContent = 'Thinking...';
             userInput.placeholder = 'Waiting for response...';
-            
-            // Add user message to history
+
             chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            
-            let systemPrompt = "You are a helpful and friendly chatbot. You provide concise and accurate answers, using the search tool when necessary to ensure accuracy and grounding your response in real-time information.";
+            let systemPrompt = "You are a helpful and friendly chatbot. Provide concise and accurate answers.";
 
             const payload = {
                 contents: chatHistory,
-                // Enable Google Search grounding
-                tools: [{ "google_search": {} }],
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                }
+                systemInstruction: { parts: [{ text: systemPrompt }] }
             };
 
             try {
@@ -199,46 +150,23 @@
 
                 const result = await response.json();
                 const candidate = result.candidates?.[0];
-
                 let modelResponse = "Sorry, I couldn't generate a response.";
-                let sources = [];
 
                 if (candidate && candidate.content?.parts?.[0]?.text) {
                     modelResponse = candidate.content.parts[0].text;
-
-                    // Extract grounding sources
-                    const groundingMetadata = candidate.groundingMetadata;
-                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                        sources = groundingMetadata.groundingAttributions
-                            .map(attribution => ({
-                                uri: attribution.web?.uri,
-                                title: attribution.web?.title,
-                            }))
-                            .filter(source => source.uri && source.title);
-                    }
-                    
-                    // Add model response to history
                     chatHistory.push({ role: "model", parts: [{ text: modelResponse }] });
-
                 } else if (result.error && result.error.message) {
                     modelResponse = `API Error: ${result.error.message}`;
-                    // If the history is too long, we might get an error about history size. Clear history.
-                    if (result.error.message.includes("history")) {
-                         modelResponse += " (Chat history too long, starting a new conversation.)";
-                         chatHistory = [];
-                    }
+                    if (result.error.message.includes("history")) chatHistory = [];
                 }
-                
-                // 3. Display model message
-                appendMessage(modelResponse, 'model', sources);
+
+                appendMessage(modelResponse, 'model');
 
             } catch (error) {
                 console.error("Gemini API call failed:", error);
                 appendMessage(`Connection Error: ${error.message}`, 'model');
-                // Clear history on connection failure
                 chatHistory = [];
             } finally {
-                // 4. Reset UI state
                 sendButton.disabled = false;
                 loader.classList.add('hidden');
                 document.getElementById('button-text').textContent = 'Send';
@@ -247,7 +175,6 @@
             }
         }
 
-        // Attach event listener
         chatForm.addEventListener('submit', sendMessage);
     </script>
 </body>

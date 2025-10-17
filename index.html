@@ -50,8 +50,8 @@
         const Loader = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2v4"/><path d="m16.2 7.8 2.5 2.5"/><path d="M22 12h-4"/><path d="m16.2 16.2 2.5-2.5"/><path d="M12 22v-4"/><path d="m7.8 16.2-2.5-2.5"/><path d="M2 12h4"/><path d="m7.8 7.8-2.5 2.5"/></svg>;
         
         // --- Configuration and API Setup ---
-        const API_KEY = "" // API Key is automatically provided by the Canvas environment.
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${API_KEY}`;
+        // CRITICAL FIX: You MUST replace the placeholder with your actual Gemini API Key
+        const API_KEY = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk"; // <--- *** PASTE YOUR GEMINI API KEY HERE *** const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${API_KEY}`;
         const MODEL_NAME = "gemini-2.5-flash-image-preview"; // The model for image-to-image generation
 
         // --- Utility Functions ---
@@ -315,6 +315,12 @@
                 prompt,
                 isInitialGeneration
             ) => {
+                // If API_KEY is the default placeholder, show an error immediately
+                if (API_KEY === "YOUR_API_KEY" || !API_KEY) {
+                    setError("API Key Error: Please insert your Gemini API Key into the index.html file to run this app publicly.");
+                    return;
+                }
+
                 setIsLoading(true);
                 setError('');
                 setMessage(isInitialGeneration ? 'Generating your Disney Character...' : 'Applying edit...');
@@ -361,7 +367,7 @@
                         throw new Error("API response missing image data.");
                     }
                 } catch (err) {
-                    setError(`Generation failed: ${err.message}`);
+                    setError(`Generation failed: ${err.message}. Please check your API key.`);
                     setMessage('');
                     setOutputImageBase64(null);
                 } finally {
@@ -518,4 +524,3 @@
     </script>
 </body>
 </html>
-

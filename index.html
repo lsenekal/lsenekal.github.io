@@ -1,181 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat (Flash Model)</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        'gemini-blue': '#4285F4',
-                        'gemini-gray': '#F1F3F4',
-                        'gemini-dark': '#1F1F1F',
-                    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chat (Live Flash)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                colors: {
+                    'gemini-blue': '#4285F4',
+                    'gemini-gray': '#F1F3F4',
+                    'gemini-dark': '#1F1F1F',
                 }
             }
         }
-    </script>
-    <style>
-        /* Custom scrollbar for message area */
-        .chat-area::-webkit-scrollbar {
-            width: 6px;
-        }
-        .chat-area::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 3px;
-        }
-        .chat-area {
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
-        }
-    </style>
+    }
+</script>
+<style>
+    .chat-area::-webkit-scrollbar { width: 6px; }
+    .chat-area::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+    .chat-area { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+</style>
 </head>
 <body class="bg-gemini-gray flex items-center justify-center min-h-screen p-4 font-sans">
 
-    <div id="chat-container" class="w-full max-w-xl h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden">
-        
-        <!-- Header -->
-        <header class="p-4 bg-gemini-blue text-white shadow-md flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                <circle cx="9" cy="9" r="1.5"/>
-                <circle cx="15" cy="9" r="1.5"/>
-                <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
-            </svg>
-            <h1 class="text-xl font-bold">AI Chat (Flash Model)</h1>
-        </header>
+<div id="chat-container" class="w-full max-w-xl h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden">
 
-        <!-- Message Area -->
-        <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4">
-            <div class="flex justify-start">
-                <div class="bg-gemini-blue/10 text-gemini-dark p-3 rounded-lg max-w-xs shadow-sm">
-                    Hello! Ask me anything. I can provide answers using the Flash model.
-                </div>
+    <header class="p-4 bg-gemini-blue text-white shadow-md flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+            <circle cx="9" cy="9" r="1.5"/>
+            <circle cx="15" cy="9" r="1.5"/>
+            <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
+        </svg>
+        <h1 class="text-xl font-bold">AI Chat (Live Flash)</h1>
+    </header>
+
+    <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="flex justify-start">
+            <div class="bg-gemini-blue/10 text-gemini-dark p-3 rounded-lg max-w-xs shadow-sm">
+                Hello! Ask me anything. Responses will appear in real-time using the Live Flash API.
             </div>
         </div>
-
-        <!-- Input Form -->
-        <form id="chat-form" class="p-4 border-t border-gray-200 flex items-center">
-            <input type="text" id="user-input" placeholder="Type your message..."
-                   class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gemini-blue focus:border-gemini-blue transition duration-150 shadow-inner"
-                   autocomplete="off" required>
-            <button type="submit" id="send-button"
-                    class="bg-gemini-blue hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-r-lg transition duration-150 flex items-center justify-center disabled:opacity-50">
-                <span id="button-text">Send</span>
-                <div id="loader" class="hidden w-5 h-5 border-2 border-white border-t-2 border-t-gemini-blue rounded-full animate-spin ml-2"></div>
-            </button>
-        </form>
-
     </div>
 
-    <script>
-        const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-        const chatForm = document.getElementById('chat-form');
-        const userInput = document.getElementById('user-input');
-        const messagesContainer = document.getElementById('messages');
-        const sendButton = document.getElementById('send-button');
-        const loader = document.getElementById('loader');
-        
-        let chatHistory = [];
+    <form id="chat-form" class="p-4 border-t border-gray-200 flex items-center">
+        <input type="text" id="user-input" placeholder="Type your message..."
+               class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gemini-blue focus:border-gemini-blue transition duration-150 shadow-inner"
+               autocomplete="off" required>
+        <button type="submit" id="send-button"
+                class="bg-gemini-blue hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-r-lg transition duration-150 flex items-center justify-center disabled:opacity-50">
+            <span id="button-text">Send</span>
+            <div id="loader" class="hidden w-5 h-5 border-2 border-white border-t-2 border-t-gemini-blue rounded-full animate-spin ml-2"></div>
+        </button>
+    </form>
+</div>
 
-        async function handleFetchWithRetry(url, options, maxRetries = 5) {
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (response.status === 429 && i < maxRetries - 1) {
-                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        continue;
-                    }
-                    if (!response.ok) throw new Error(`API returned status ${response.status}`);
-                    return response;
-                } catch (error) {
-                    if (i === maxRetries - 1) {
-                        console.error("Fetch failed:", error);
-                        throw new Error("Could not connect to the API. Please try again later.");
-                    }
-                }
+<script>
+const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk";
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-live-preview-09-2025:generateContent?key=${apiKey}`;
+
+const chatForm = document.getElementById('chat-form');
+const userInput = document.getElementById('user-input');
+const messagesContainer = document.getElementById('messages');
+const sendButton = document.getElementById('send-button');
+const loader = document.getElementById('loader');
+
+let chatHistory = [];
+
+function appendMessage(text, sender, isStreaming=false) {
+    const messageEl = document.createElement('div');
+    messageEl.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+
+    const contentEl = document.createElement('div');
+    contentEl.className = `p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words ${
+        sender === 'user' ? 'bg-gemini-blue text-white rounded-br-none' : 'bg-gray-100 text-gemini-dark rounded-tl-none'
+    }`;
+
+    if (isStreaming) contentEl.textContent = '';
+    else contentEl.textContent = text;
+
+    messageEl.appendChild(contentEl);
+    messagesContainer.appendChild(messageEl);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    return contentEl;
+}
+
+chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const prompt = userInput.value.trim();
+    if (!prompt) return;
+
+    appendMessage(prompt, 'user');
+    userInput.value = '';
+    sendButton.disabled = true;
+    loader.classList.remove('hidden');
+    document.getElementById('button-text').textContent = 'Thinking...';
+    userInput.placeholder = 'Waiting for response...';
+
+    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+    const systemPrompt = "You are a helpful and friendly chatbot. Provide concise and accurate answers.";
+
+    const payload = {
+        contents: chatHistory,
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+    };
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`API returned status ${response.status}`);
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        const modelTextEl = appendMessage('', 'model', true);
+
+        let done = false;
+        while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            if (value) {
+                const chunk = decoder.decode(value);
+                modelTextEl.textContent += chunk;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         }
 
-        function appendMessage(text, sender) {
-            const messageEl = document.createElement('div');
-            messageEl.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+        chatHistory.push({ role: "model", parts: [{ text: modelTextEl.textContent }] });
 
-            const contentEl = document.createElement('div');
-            contentEl.className = `p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words ${
-                sender === 'user' ? 'bg-gemini-blue text-white rounded-br-none' : 'bg-gray-100 text-gemini-dark rounded-tl-none'
-            }`;
-
-            contentEl.innerHTML = text;
-            messageEl.appendChild(contentEl);
-            messagesContainer.appendChild(messageEl);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        async function sendMessage(e) {
-            e.preventDefault();
-            const prompt = userInput.value.trim();
-            if (!prompt) return;
-
-            appendMessage(prompt, 'user');
-            userInput.value = '';
-            sendButton.disabled = true;
-            loader.classList.remove('hidden');
-            document.getElementById('button-text').textContent = 'Thinking...';
-            userInput.placeholder = 'Waiting for response...';
-
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            let systemPrompt = "You are a helpful and friendly chatbot. Provide concise and accurate answers.";
-
-            const payload = {
-                contents: chatHistory,
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
-
-            try {
-                const response = await handleFetchWithRetry(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                const candidate = result.candidates?.[0];
-                let modelResponse = "Sorry, I couldn't generate a response.";
-
-                if (candidate && candidate.content?.parts?.[0]?.text) {
-                    modelResponse = candidate.content.parts[0].text;
-                    chatHistory.push({ role: "model", parts: [{ text: modelResponse }] });
-                } else if (result.error && result.error.message) {
-                    modelResponse = `API Error: ${result.error.message}`;
-                    if (result.error.message.includes("history")) chatHistory = [];
-                }
-
-                appendMessage(modelResponse, 'model');
-
-            } catch (error) {
-                console.error("Gemini API call failed:", error);
-                appendMessage(`Connection Error: ${error.message}`, 'model');
-                chatHistory = [];
-            } finally {
-                sendButton.disabled = false;
-                loader.classList.add('hidden');
-                document.getElementById('button-text').textContent = 'Send';
-                userInput.placeholder = 'Type your message...';
-                userInput.focus();
-            }
-        }
-
-        chatForm.addEventListener('submit', sendMessage);
-    </script>
+    } catch (error) {
+        console.error("Live API call failed:", error);
+        appendMessage(`Connection Error: ${error.message}`, 'model');
+        chatHistory = [];
+    } finally {
+        sendButton.disabled = false;
+        loader.classList.add('hidden');
+        document.getElementById('button-text').textContent = 'Send';
+        userInput.placeholder = 'Type your message...';
+        userInput.focus();
+    }
+});
+</script>
 </body>
 </html>

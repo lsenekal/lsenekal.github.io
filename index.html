@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Flash PRO Chat (Stable)</title>
+    <title>AI Chat (Grounded)</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -49,7 +49,7 @@
                 <circle cx="15" cy="9" r="1.5"/>
                 <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
             </svg>
-            <h1 class="text-xl font-bold">Gemini Flash Chat (Stable Model, Grounded)</h1>
+            <h1 class="text-xl font-bold">AI Chat (Flash Model, Grounded)</h1>
         </header>
 
         <!-- Message Area -->
@@ -64,7 +64,7 @@
 
         <!-- Input Form -->
         <form id="chat-form" class="p-4 border-t border-gray-200 flex items-center">
-            <input type="text" id="user-input" placeholder="Type your message..." 
+            <input type="text" id="user-input" placeholder="Type your message..."
                    class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gemini-blue focus:border-gemini-blue transition duration-150 shadow-inner"
                    autocomplete="off" required>
             <button type="submit" id="send-button"
@@ -80,9 +80,9 @@
     <script>
         // --- Gemini API Configuration ---
         // API Key inserted below
-        const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk"; 
-        // Using the stable, generally available model ID: gemini-2.5-flash.
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+        const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk";
+        // Using the recommended fast and grounded model: gemini-2.5-flash-preview-09-2025.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         const chatForm = document.getElementById('chat-form');
         const userInput = document.getElementById('user-input');
         const messagesContainer = document.getElementById('messages');
@@ -97,6 +97,7 @@
                 try {
                     const response = await fetch(url, options);
                     if (response.status === 429 && i < maxRetries - 1) {
+                        // Implement exponential backoff
                         const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
                         continue; // Retry the loop
@@ -146,7 +147,7 @@
                 
                 const uniqueSources = Array.from(new Map(sources.map(item => [item.uri, item])).values());
                 
-                citationEl.innerHTML = 'Sources: ' + uniqueSources.map(source => 
+                citationEl.innerHTML = 'Sources: ' + uniqueSources.map(source =>
                     `<a href="${source.uri}" target="_blank" class="hover:text-gemini-blue underline" title="${source.title || source.uri}">[Source]</a>`
                 ).join(' ');
 
@@ -235,7 +236,7 @@
                 console.error("Gemini API call failed:", error);
                 appendMessage(`Connection Error: ${error.message}`, 'model');
                 // Clear history on connection failure
-                chatHistory = []; 
+                chatHistory = [];
             } finally {
                 // 4. Reset UI state
                 sendButton.disabled = false;

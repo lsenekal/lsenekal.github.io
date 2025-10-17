@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Chat (Live Flash)</title>
+<title>AI Chat (Flash Model)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
@@ -36,13 +36,13 @@
             <circle cx="15" cy="9" r="1.5"/>
             <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
         </svg>
-        <h1 class="text-xl font-bold">AI Chat (Live Flash)</h1>
+        <h1 class="text-xl font-bold">AI Chat (Flash Model)</h1>
     </header>
 
     <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4">
         <div class="flex justify-start">
             <div class="bg-gemini-blue/10 text-gemini-dark p-3 rounded-lg max-w-xs shadow-sm">
-                Hello! Ask me anything. Responses will appear in real-time using the Live Flash API.
+                Hello! Ask me anything.
             </div>
         </div>
     </div>
@@ -61,7 +61,7 @@
 
 <script>
 const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk";
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-live-preview-09-2025:generateContent?key=${apiKey}`;
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
 const chatForm = document.getElementById('chat-form');
 const userInput = document.getElementById('user-input');
@@ -71,7 +71,7 @@ const loader = document.getElementById('loader');
 
 let chatHistory = [];
 
-function appendMessage(text, sender, isStreaming=false) {
+function appendMessage(text, sender) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
 
@@ -79,15 +79,11 @@ function appendMessage(text, sender, isStreaming=false) {
     contentEl.className = `p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words ${
         sender === 'user' ? 'bg-gemini-blue text-white rounded-br-none' : 'bg-gray-100 text-gemini-dark rounded-tl-none'
     }`;
-
-    if (isStreaming) contentEl.textContent = '';
-    else contentEl.textContent = text;
+    contentEl.innerHTML = text;
 
     messageEl.appendChild(contentEl);
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    return contentEl;
 }
 
 chatForm.addEventListener('submit', async (e) => {
@@ -105,11 +101,7 @@ chatForm.addEventListener('submit', async (e) => {
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     const systemPrompt = "You are a helpful and friendly chatbot. Provide concise and accurate answers.";
-
-    const payload = {
-        contents: chatHistory,
-        systemInstruction: { parts: [{ text: systemPrompt }] }
-    };
+    const payload = { contents: chatHistory, systemInstruction: { parts: [{ text: systemPrompt }] } };
 
     try {
         const response = await fetch(apiUrl, {
@@ -119,26 +111,22 @@ chatForm.addEventListener('submit', async (e) => {
         });
 
         if (!response.ok) throw new Error(`API returned status ${response.status}`);
+        const result = await response.json();
+        const candidate = result.candidates?.[0];
+        let modelResponse = "Sorry, I couldn't generate a response.";
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        const modelTextEl = appendMessage('', 'model', true);
-
-        let done = false;
-        while (!done) {
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            if (value) {
-                const chunk = decoder.decode(value);
-                modelTextEl.textContent += chunk;
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
+        if (candidate?.content?.parts?.[0]?.text) {
+            modelResponse = candidate.content.parts[0].text;
+            chatHistory.push({ role: "model", parts: [{ text: modelResponse }] });
+        } else if (result.error?.message) {
+            modelResponse = `API Error: ${result.error.message}`;
+            if (result.error.message.includes("history")) chatHistory = [];
         }
 
-        chatHistory.push({ role: "model", parts: [{ text: modelTextEl.textContent }] });
+        appendMessage(modelResponse, 'model');
 
     } catch (error) {
-        console.error("Live API call failed:", error);
+        console.error("Flash API call failed:", error);
         appendMessage(`Connection Error: ${error.message}`, 'model');
         chatHistory = [];
     } finally {

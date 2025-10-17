@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Chat (Flash Model)</title>
+<title>AI Chat (Flash Model with Grounding)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
@@ -36,13 +36,13 @@
             <circle cx="15" cy="9" r="1.5"/>
             <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
         </svg>
-        <h1 class="text-xl font-bold">AI Chat (Flash Model)</h1>
+        <h1 class="text-xl font-bold">AI Chat (Flash Model with Grounding)</h1>
     </header>
 
     <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4">
         <div class="flex justify-start">
             <div class="bg-gemini-blue/10 text-gemini-dark p-3 rounded-lg max-w-xs shadow-sm">
-                Hello! Ask me anything.
+                Hello! Ask me anything. I can provide grounded answers using Google Search.
             </div>
         </div>
     </div>
@@ -71,7 +71,7 @@ const loader = document.getElementById('loader');
 
 let chatHistory = [];
 
-function appendMessage(text, sender) {
+function appendMessage(text, sender, sources = []) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
 
@@ -79,7 +79,19 @@ function appendMessage(text, sender) {
     contentEl.className = `p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words ${
         sender === 'user' ? 'bg-gemini-blue text-white rounded-br-none' : 'bg-gray-100 text-gemini-dark rounded-tl-none'
     }`;
+    
     contentEl.innerHTML = text;
+
+    // Add citations if present
+    if (sources.length > 0) {
+        const citationEl = document.createElement('div');
+        citationEl.classList.add('mt-2', 'pt-2', 'border-t', 'border-gray-300', 'text-xs', 'text-gray-500');
+        const uniqueSources = Array.from(new Map(sources.map(item => [item.uri, item])).values());
+        citationEl.innerHTML = 'Sources: ' + uniqueSources.map(source =>
+            `<a href="${source.uri}" target="_blank" class="hover:text-gemini-blue underline" title="${source.title || source.uri}">[Source]</a>`
+        ).join(' ');
+        contentEl.appendChild(citationEl);
+    }
 
     messageEl.appendChild(contentEl);
     messagesContainer.appendChild(messageEl);
@@ -100,8 +112,12 @@ chatForm.addEventListener('submit', async (e) => {
 
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
-    const systemPrompt = "You are a helpful and friendly chatbot. Provide concise and accurate answers.";
-    const payload = { contents: chatHistory, systemInstruction: { parts: [{ text: systemPrompt }] } };
+    const systemPrompt = "You are a helpful chatbot. Provide accurate answers and use Google Search grounding to ensure up-to-date information.";
+    const payload = {
+        contents: chatHistory,
+        tools: [{ "google_search": {} }], // Enable grounding
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+    };
 
     try {
         const response = await fetch(apiUrl, {
@@ -114,16 +130,26 @@ chatForm.addEventListener('submit', async (e) => {
         const result = await response.json();
         const candidate = result.candidates?.[0];
         let modelResponse = "Sorry, I couldn't generate a response.";
+        let sources = [];
 
         if (candidate?.content?.parts?.[0]?.text) {
             modelResponse = candidate.content.parts[0].text;
+
+            // Extract grounding sources
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata?.groundingAttributions) {
+                sources = groundingMetadata.groundingAttributions
+                    .map(attribution => ({ uri: attribution.web?.uri, title: attribution.web?.title }))
+                    .filter(source => source.uri && source.title);
+            }
+
             chatHistory.push({ role: "model", parts: [{ text: modelResponse }] });
         } else if (result.error?.message) {
             modelResponse = `API Error: ${result.error.message}`;
             if (result.error.message.includes("history")) chatHistory = [];
         }
 
-        appendMessage(modelResponse, 'model');
+        appendMessage(modelResponse, 'model', sources);
 
     } catch (error) {
         console.error("Flash API call failed:", error);

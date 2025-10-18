@@ -6,56 +6,65 @@
 <title>AI Chat</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: { sans: ['Inter', 'sans-serif'] },
-                colors: {
-                    'gemini-blue': '#4285F4',
-                    'gemini-gray': '#F1F3F4',
-                    'gemini-dark': '#1F1F1F',
-                }
+tailwind.config = {
+    theme: {
+        extend: {
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
+            colors: {
+                'gemini-blue': '#10a37f',
+                'gemini-gray': '#f7f7f8',
+                'gemini-dark': '#111827',
+                'gemini-msg': '#e5e7eb',
+                'gemini-user': '#0ea5e9'
             }
         }
     }
+}
 </script>
 <style>
-    .chat-area::-webkit-scrollbar { width: 6px; }
-    .chat-area::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
-    .chat-area { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+html, body { scroll-behavior: smooth; }
+.chat-area::-webkit-scrollbar { width: 6px; }
+.chat-area::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+.chat-area { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+.message-content b { font-weight: 700; }
+.message-content br { white-space: pre; }
+.message-content ul { padding-left: 1.2rem; list-style: disc; margin: 0.5rem 0; }
+.message-content li { margin: 0.25rem 0; }
 </style>
 </head>
 <body class="bg-gemini-gray flex items-center justify-center min-h-screen p-4 font-sans">
 
-<div id="chat-container" class="w-full max-w-xl h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden">
+<div id="chat-container" class="w-full max-w-2xl h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden">
 
-    <header class="p-4 bg-gemini-blue text-white shadow-md flex items-center">
-        <!-- Icon remains the same -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-            <circle cx="9" cy="9" r="1.5"/>
-            <circle cx="15" cy="9" r="1.5"/>
-            <path d="M12 15c-1.33 0-2.58.54-3.5 1.48.51.57 1.13 1.05 1.83 1.42.3-.16.63-.3.97-.43.43-.17.89-.25 1.35-.25s.92.08 1.35.25c.34.13.67.27.97.43.7-.37 1.32-.85 1.83-1.42-.92-.94-2.17-1.48-3.5-1.48z"/>
-        </svg>
-        <!-- Title updated -->
+    <!-- Header -->
+    <header class="p-4 bg-gemini-dark text-white shadow-md flex items-center">
         <h1 class="text-xl font-bold">AI Chat</h1>
+        <div class="ml-auto flex items-center space-x-2">
+            <label for="model-select" class="text-sm text-white">Model:</label>
+            <select id="model-select" class="rounded-md p-1 text-black">
+                <option value="gemma-3-27b-it">Gemma</option>
+                <option value="gemini-2.5-flash">Gemini Flash</option>
+            </select>
+        </div>
     </header>
 
-    <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4">
+    <!-- Messages -->
+    <div id="messages" class="chat-area flex-1 overflow-y-auto p-4 space-y-4 bg-gemini-gray">
         <div class="flex justify-start">
-            <div class="bg-gemini-blue/10 text-gemini-dark p-3 rounded-lg max-w-xs shadow-sm">
-                <!-- Welcome message updated -->
-                Hello! Ask me anything.
+            <div class="bg-gemini-msg text-gemini-dark p-4 rounded-xl max-w-md shadow message-content">
+                Hi there! 👋 Ask me anything.
             </div>
         </div>
     </div>
 
-    <form id="chat-form" class="p-4 border-t border-gray-200 flex items-center">
+    <!-- Input -->
+    <form id="chat-form" class="p-4 border-t border-gray-300 flex items-center bg-white">
         <input type="text" id="user-input" placeholder="Type your message..."
-               class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gemini-blue focus:border-gemini-blue transition duration-150 shadow-inner"
+               class="flex-1 p-3 border border-gray-300 rounded-l-full focus:ring-2 focus:ring-gemini-user focus:border-gemini-user transition duration-150 shadow-inner"
                autocomplete="off" required>
         <button type="submit" id="send-button"
-                class="bg-gemini-blue hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-r-lg transition duration-150 flex items-center justify-center disabled:opacity-50">
+                class="bg-gemini-user hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-r-full transition duration-150 flex items-center justify-center disabled:opacity-50 ml-2">
             <span id="button-text">Send</span>
             <div id="loader" class="hidden w-5 h-5 border-2 border-white border-t-2 border-t-gemini-blue rounded-full animate-spin ml-2"></div>
         </button>
@@ -64,33 +73,57 @@
 
 <script>
 const apiKey = "AIzaSyB9szLkUYPkTcyim4eK78xYOdhkVsmerSk";
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
 const chatForm = document.getElementById('chat-form');
 const userInput = document.getElementById('user-input');
 const messagesContainer = document.getElementById('messages');
 const sendButton = document.getElementById('send-button');
 const loader = document.getElementById('loader');
+const modelSelect = document.getElementById('model-select');
 
 let chatHistory = [];
 
-// Simplified appendMessage: sources handling removed
+// Format message text for bold, bullets, line breaks
+function formatMessage(text) {
+    // Bold **text**
+    text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    // Bullets starting with *
+    text = text.replace(/^\s*\* (.+)$/gm, '<li>$1</li>');
+    text = text.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+    // Newlines with ###
+    text = text.replace(/###/g, '<br>');
+    return text;
+}
+
+// Append message to chat
 function appendMessage(text, sender) {
     const messageEl = document.createElement('div');
-    messageEl.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+    messageEl.classList.add('flex', 'items-end', sender === 'user' ? 'justify-end' : 'justify-start');
 
     const contentEl = document.createElement('div');
-    contentEl.className = `p-3 rounded-xl max-w-xs md:max-w-md shadow-md break-words ${
-        sender === 'user' ? 'bg-gemini-blue text-white rounded-br-none' : 'bg-gray-100 text-gemini-dark rounded-tl-none'
+    contentEl.className = `p-4 rounded-xl max-w-md shadow break-words message-content ${
+        sender === 'user' ? 'bg-gemini-user text-white rounded-br-none' : 'bg-gemini-msg text-gemini-dark rounded-tl-none'
     }`;
-    
-    contentEl.innerHTML = text;
+
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const modelLabel = sender === 'model' ? ` <span class="text-xs text-gray-500 ml-2">(${modelSelect.options[modelSelect.selectedIndex].text})</span>` : '';
+    contentEl.innerHTML = formatMessage(text) + `<div class="text-xs text-gray-500 mt-1 text-right">${timestamp}${modelLabel}</div>`;
 
     messageEl.appendChild(contentEl);
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
+// Get API URL based on selected model
+function getApiUrl() {
+    const selectedModel = modelSelect.value;
+    if (selectedModel === "gemma-3-27b-it") {
+        return `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${apiKey}`;
+    } else if (selectedModel === "gemini-2.5-flash") {
+        return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    }
+}
+
+// Handle message submit
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const prompt = userInput.value.trim();
@@ -104,17 +137,10 @@ chatForm.addEventListener('submit', async (e) => {
     userInput.placeholder = 'Waiting for response...';
 
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-
-    // System prompt updated to reflect non-grounded usage
-    const systemPrompt = "You are a helpful chatbot. Provide accurate answers. your answers should only be short and powerful, never respond in more than 50 words per response!";
-    const payload = {
-        contents: chatHistory,
-        // The 'tools' property for Google Search grounding has been removed.
-        systemInstruction: { parts: [{ text: systemPrompt }] }
-    };
+    const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
     try {
-        const response = await fetch(apiUrl, {
+        const response = await fetch(getApiUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -122,25 +148,14 @@ chatForm.addEventListener('submit', async (e) => {
 
         if (!response.ok) throw new Error(`API returned status ${response.status}`);
         const result = await response.json();
-        const candidate = result.candidates?.[0];
-        let modelResponse = "Sorry, I couldn't generate a response.";
-        
-        // Source extraction logic is no longer needed.
-        if (candidate?.content?.parts?.[0]?.text) {
-            modelResponse = candidate.content.parts[0].text;
-            chatHistory.push({ role: "model", parts: [{ text: modelResponse }] });
-        } else if (result.error?.message) {
-            modelResponse = `API Error: ${result.error.message}`;
-            if (result.error.message.includes("history")) chatHistory = [];
-        }
 
-        // Call updated to not pass sources
+        const modelResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, no response.";
+        chatHistory.push({ role: "model", parts: [{ text: modelResponse }] });
         appendMessage(modelResponse, 'model');
 
     } catch (error) {
-        console.error("Flash API call failed:", error);
+        console.error("API call failed:", error);
         appendMessage(`Connection Error: ${error.message}`, 'model');
-        chatHistory = [];
     } finally {
         sendButton.disabled = false;
         loader.classList.add('hidden');
@@ -150,5 +165,6 @@ chatForm.addEventListener('submit', async (e) => {
     }
 });
 </script>
+
 </body>
 </html>

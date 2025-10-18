@@ -82,15 +82,19 @@ const modelSelect = document.getElementById('model-select');
 
 let chatHistory = [];
 
-// Format message text for bold, bullets, line breaks
+// Format message text for bold, bullets, headings, line breaks
 function formatMessage(text) {
     // Bold **text**
     text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
     // Bullets starting with *
     text = text.replace(/^\s*\* (.+)$/gm, '<li>$1</li>');
     text = text.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
-    // Newlines with ###
-    text = text.replace(/###/g, '<br>');
+
+    // Headings
+    text = text.replace(/## (.+)/g, '<b>$1</b><br>'); // ## heading → bold + break
+    text = text.replace(/###/g, '<br>');              // ### → simple break
+
     return text;
 }
 

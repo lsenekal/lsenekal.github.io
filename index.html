@@ -106,7 +106,7 @@ chatForm.addEventListener('submit', async (e) => {
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     // System prompt updated to reflect non-grounded usage
-    const systemPrompt = "You are a helpful chatbot. Provide accurate answers.";
+    const systemPrompt = "You are a helpful chatbot. Provide accurate answers. your answers should only be short and powerful, never respond in more than 50 words per response!";
     const payload = {
         contents: chatHistory,
         // The 'tools' property for Google Search grounding has been removed.
